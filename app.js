@@ -18,6 +18,10 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
+function minutesOfDay(date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
 function monday(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -170,17 +174,22 @@ function renderCalendar() {
     grid.append(head);
   }
 
+  const timeScale = document.createElement("div");
+  timeScale.className = "time-scale";
+
   for (let hour = H0; hour < H1; hour++) {
     const time = document.createElement("div");
     time.className = "time";
     time.textContent = pad(hour) + ":00";
-    grid.append(time);
+    timeScale.appendChild(time);
+  }
 
-    for (let i = 0; i < 7; i++) {
-      const cell = document.createElement("div");
-      cell.className = "day";
-      grid.append(cell);
-    }
+  grid.append(timeScale);
+
+  for (let i = 0; i < 7; i++) {
+    const cell = document.createElement("div");
+    cell.className = "day";
+    grid.append(cell);
   }
 
   function placeEvents(events, type) {
@@ -188,19 +197,16 @@ function renderCalendar() {
       const dayIndex = Math.floor((event.start - m) / 86400000);
       if (dayIndex < 0 || dayIndex > 6) return;
 
-      let start = event.start.getHours() + event.start.getMinutes() / 60;
-      let end = event.end.getHours() + event.end.getMinutes() / 60;
+      const startMinutes = Math.max(minutesOfDay(event.start), H0 * 60);
+      const endMinutes = Math.min(minutesOfDay(event.end), H1 * 60);
 
-      start = Math.max(start, H0);
-      end = Math.min(end, H1);
-
-      if (end <= start) return;
+      if (endMinutes <= startMinutes) return;
 
       const cell = grid.querySelectorAll(".day")[dayIndex];
       const el = document.createElement("div");
       el.className = `event ${type}`;
-      el.style.top = ((start - H0) * PX) + "px";
-      el.style.height = Math.max(22, (end - start) * PX - 4) + "px";
+      el.style.top = (((startMinutes - H0 * 60) / 60) * PX) + "px";
+      el.style.height = Math.max(22, ((endMinutes - startMinutes) / 60) * PX - 4) + "px";
       el.innerHTML = `<b>${event.title}</b><br>${pad(event.start.getHours())}:${pad(event.start.getMinutes())} – ${pad(event.end.getHours())}:${pad(event.end.getMinutes())}`;
       cell.append(el);
     });
