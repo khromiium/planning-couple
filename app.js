@@ -2,6 +2,7 @@ const H0 = 8;
 const H1 = 20;
 const PX = 40;
 const DAY_HEIGHT = (H1 - H0) * PX;
+const LOCAL_EVENTS_KEY = "nous-deux-events-v1";
 
 const config = window.APP_CONFIG || {};
 const ALLOWED_EMAILS = (config.allowedEmails || []).map((email) => String(email).trim().toLowerCase());
@@ -29,6 +30,45 @@ function monday(date) {
   const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
   return d;
+}
+
+function saveLocalEvents() {
+  try {
+    localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify({ me: S.me, her: S.her }));
+    return true;
+  } catch (error) {
+    console.error("saveLocalEvents", error);
+    setSyncMessage("Impossible d’enregistrer les cours sur cet appareil.", true);
+    return false;
+  }
+}
+
+function loadLocalEvents() {
+  try {
+    const saved = localStorage.getItem(LOCAL_EVENTS_KEY);
+    if (!saved) return false;
+
+    const data = JSON.parse(saved);
+    const restore = (events) => (Array.isArray(events) ? events : []).map((event) => ({
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end)
+    }));
+
+    S.me = restore(data.me);
+    S.her = restore(data.her);
+    return true;
+  } catch (error) {
+    console.error("loadLocalEvents", error);
+    return false;
+  }
+}
+
+function setSyncMessage(message, isError = false) {
+  const node = document.getElementById("syncMessage");
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("sync-error", isError);
 }
 
 function setAuthMessage(message, isError = false) {
@@ -65,7 +105,11 @@ function makeEvent(day, start, end, title) {
 }
 
 async function loadFromSupabase() {
-  if (!supabase) return;
+  if (!supabase) {
+    loadLocalEvents();
+    setSyncMessage("Cours enregistrés sur cet appareil uniquement.", true);
+    return;
+  }
 
   const { data, error } = await supabase
     .from("planner_events")
@@ -74,10 +118,18 @@ async function loadFromSupabase() {
 
   if (error) {
     console.error("loadFromSupabase", error);
+    loadLocalEvents();
+    setSyncMessage("Synchronisation impossible : cours restaurés depuis cet appareil.", true);
     return;
   }
 
-  S.me = (data || [])
+  const remoteEvents = data || [];
+  if (remoteEvents.length === 0 && loadLocalEvents()) {
+    await saveToSupabase();
+    return;
+  }
+
+  S.me = remoteEvents
     .filter((event) => event.user_role === "me")
     .map((event) => ({
       ...event,
@@ -85,17 +137,24 @@ async function loadFromSupabase() {
       end: new Date(event.end)
     }));
 
-  S.her = (data || [])
+  S.her = remoteEvents
     .filter((event) => event.user_role === "her")
     .map((event) => ({
       ...event,
       start: new Date(event.start),
       end: new Date(event.end)
     }));
+
+  saveLocalEvents();
+  setSyncMessage("Cours synchronisés avec Supabase.");
 }
 
 async function saveToSupabase() {
-  if (!supabase || !S.currentUser) return;
+  saveLocalEvents();
+  if (!supabase || !S.currentUser) {
+    setSyncMessage("Cours enregistrés sur cet appareil uniquement.", true);
+    return false;
+  }
 
   const all = [...S.me, ...S.her];
   const { error } = await supabase.from("planner_events").upsert(
@@ -105,14 +164,19 @@ async function saveToSupabase() {
       user_role: event.user_role || (S.currentUser.role === "me" ? "me" : "her"),
       start: event.start.toISOString(),
       end: event.end.toISOString(),
-      created_at: new Date().toISOString()
+      created_at: event.created_at || new Date().toISOString()
     })),
     { onConflict: "id" }
   );
 
   if (error) {
     console.error("saveToSupabase", error);
+    setSyncMessage("Sauvegarde locale faite, mais la synchronisation Supabase a échoué.", true);
+    return false;
   }
+
+  setSyncMessage("Cours enregistrés et synchronisés.");
+  return true;
 }
 
 function renderList() {
@@ -148,7 +212,14 @@ function renderList() {
     row.querySelector("button").onclick = async () => {
       const target = event.who === "me" ? S.me : S.her;
       target.splice(event.i, 1);
-      await saveToSupabase();
+      saveLocalEvents();
+      if (supabase && S.currentUser && event.id) {
+        const { error } = await supabase.from("planner_events").delete().eq("id", event.id);
+        if (error) {
+          console.error("deleteFromSupabase", error);
+          setSyncMessage("Cours supprimé de cet appareil, mais pas de Supabase.", true);
+        }
+      }
       render();
     };
 
@@ -410,6 +481,7 @@ async function init() {
   };
 
   if (!ready) {
+    loadLocalEvents();
     render();
     return;
   }
