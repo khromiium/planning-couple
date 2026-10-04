@@ -1,6 +1,7 @@
 const H0 = 8;
 const H1 = 20;
 const PX = 40;
+const DAY_HEIGHT = (H1 - H0) * PX;
 
 const config = window.APP_CONFIG || {};
 const ALLOWED_EMAILS = (config.allowedEmails || []).map((email) => String(email).trim().toLowerCase());
@@ -160,6 +161,8 @@ function renderCalendar() {
   const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
+  grid.style.gridTemplateRows = `auto ${DAY_HEIGHT}px`;
+  document.documentElement.style.setProperty("--day-height", `${DAY_HEIGHT}px`);
 
   const blank = document.createElement("div");
   blank.className = "head";
@@ -176,6 +179,7 @@ function renderCalendar() {
 
   const timeScale = document.createElement("div");
   timeScale.className = "time-scale";
+  timeScale.style.height = `${DAY_HEIGHT}px`;
 
   for (let hour = H0; hour < H1; hour++) {
     const time = document.createElement("div");
@@ -189,6 +193,7 @@ function renderCalendar() {
   for (let i = 0; i < 7; i++) {
     const cell = document.createElement("div");
     cell.className = "day";
+    cell.style.height = `${DAY_HEIGHT}px`;
     grid.append(cell);
   }
 
@@ -261,8 +266,15 @@ async function initializeSupabase() {
   const url = config.supabaseUrl;
   const key = config.supabaseAnonKey;
 
-  if (!url || !key || url.includes("YOUR_PROJECT_ID") || key.includes("YOUR_")) {
-    setAuthMessage("Configure les clés Supabase dans config.js avant de déployer le site.", true);
+  const hasRealSupabaseConfig =
+    url &&
+    key &&
+    !url.includes("YOUR_PROJECT_ID") &&
+    !key.includes("YOUR_") &&
+    !url.includes("ManonJorick.com");
+
+  if (!hasRealSupabaseConfig) {
+    setAuthMessage("Mode démo activé : configure les vraies clés Supabase pour enregistrer les données.", false);
     return false;
   }
 
@@ -336,11 +348,11 @@ async function handleSubmitEvent(event) {
     return;
   }
 
-  const event = makeEvent(day, start, end, title);
+  const newEvent = makeEvent(day, start, end, title);
   if (who === "me") {
-    S.me.push({ ...event, user_role: "me", id: crypto.randomUUID() });
+    S.me.push({ ...newEvent, user_role: "me", id: crypto.randomUUID() });
   } else {
-    S.her.push({ ...event, user_role: "her", id: crypto.randomUUID() });
+    S.her.push({ ...newEvent, user_role: "her", id: crypto.randomUUID() });
   }
 
   document.getElementById("titleInput").value = "";
@@ -376,9 +388,6 @@ async function loadSession() {
 
 async function init() {
   const ready = await initializeSupabase();
-  if (!ready) {
-    return;
-  }
 
   document.getElementById("loginForm").addEventListener("submit", handleLogin);
   document.getElementById("logoutBtn").addEventListener("click", handleLogout);
@@ -399,6 +408,11 @@ async function init() {
     ];
     render();
   };
+
+  if (!ready) {
+    render();
+    return;
+  }
 
   await loadSession();
 }

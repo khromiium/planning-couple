@@ -246,6 +246,7 @@ form#eventForm {
 .grid {
   display: grid;
   grid-template-columns: 58px repeat(7, minmax(120px, 1fr));
+  grid-template-rows: auto var(--day-height, 480px);
   min-width: 900px;
 }
 
@@ -258,9 +259,16 @@ form#eventForm {
   text-align: center;
 }
 
+.time-scale {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+}
+
 .day {
   position: relative;
-  height: 720px;
+  height: var(--day-height, 480px);
   border-right: 1px solid var(--line);
   background: linear-gradient(to bottom, transparent 39px, var(--line) 40px, transparent 41px);
   background-size: 100% 40px;
@@ -268,12 +276,12 @@ form#eventForm {
 
 .time {
   height: 40px;
-  border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   font-size: 10px;
   color: var(--muted);
   padding: 2px 6px;
   text-align: right;
+  line-height: 36px;
 }
 
 .event {
