@@ -56,6 +56,38 @@
 
         <section class="panel">
           <div class="weekbar">
+            <h2 id="weekLabel">Cette semaine</h2>
+            <button id="today" type="button">Aujourd'hui</button>
+          </div>
+
+          <div class="calendar">
+            <div class="grid" id="grid"></div>
+          </div>
+
+          <div class="legend">
+            <span><i class="dot" style="background: var(--me);"></i>Moi</span>
+            <span><i class="dot" style="background: var(--her);"></i>Elle</span>
+            <span>❤️ Libre à deux</span>
+          </div>
+        </section>
+
+        <section class="summary">
+          <div class="stat">
+            <b id="meCount">0</b>
+            <span>mes événements</span>
+          </div>
+          <div class="stat">
+            <b id="herCount">0</b>
+            <span>ses événements</span>
+          </div>
+          <div class="stat">
+            <b id="freeCount">—</b>
+            <span>heures libres à deux</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="weekbar">
             <h2>Ajouter un cours</h2>
             <span class="sub">Entrez vos emplois du temps directement ici.</span>
           </div>
@@ -83,38 +115,6 @@
           </form>
 
           <div id="eventList" class="eventList"></div>
-        </section>
-
-        <section class="summary">
-          <div class="stat">
-            <b id="meCount">0</b>
-            <span>mes événements</span>
-          </div>
-          <div class="stat">
-            <b id="herCount">0</b>
-            <span>ses événements</span>
-          </div>
-          <div class="stat">
-            <b id="freeCount">—</b>
-            <span>heures libres à deux</span>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="weekbar">
-            <h2 id="weekLabel">Cette semaine</h2>
-            <button id="today" type="button">Aujourd'hui</button>
-          </div>
-
-          <div class="calendar">
-            <div class="grid" id="grid"></div>
-          </div>
-
-          <div class="legend">
-            <span><i class="dot" style="background: var(--me);"></i>Moi</span>
-            <span><i class="dot" style="background: var(--her);"></i>Elle</span>
-            <span>❤️ Libre à deux</span>
-          </div>
         </section>
 
         <div class="help">
